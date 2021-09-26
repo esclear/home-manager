@@ -36,22 +36,18 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Create two dummy files in /lib/fontconfig to make sure that
-    # buildEnv creates a real directory path. These files are removed
-    # in home.extraProfileCommands below so the packages will not
-    # become "runtime" dependencies.
+    # Make sure the /lib/fontconfig path exists as a real directory. This is
+    # necessary sine the below extra profile commands will attempt to write to
+    # this directory, which will fail if it is a symlink to some other store
+    # path.
     home.packages = [
-      (pkgs.writeTextFile {
-        name = "hm-dummy1";
-        destination = "/lib/fontconfig/hm-dummy1";
-        text = "dummy";
-      })
+      (pkgs.runCommandLocal "dummy-fontconfig-dir1" { } ''
+        mkdir -p $out/lib/fontconfig
+      '')
 
-      (pkgs.writeTextFile {
-        name = "hm-dummy2";
-        destination = "/lib/fontconfig/hm-dummy2";
-        text = "dummy";
-      })
+      (pkgs.runCommandLocal "dummy-fontconfig-dir2" { } ''
+        mkdir -p $out/lib/fontconfig
+      '')
     ];
 
     home.extraProfileCommands = ''
@@ -76,8 +72,6 @@ in {
         unset FONTCONFIG_FILE
       fi
 
-      # Remove hacky dummy files.
-      rm $out/lib/fontconfig/hm-dummy?
       rmdir --ignore-fail-on-non-empty -p $out/lib/fontconfig
     '';
 
